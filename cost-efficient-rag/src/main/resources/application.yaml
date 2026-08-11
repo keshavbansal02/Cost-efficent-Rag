@@ -14,13 +14,15 @@ spring:
       base-url: https://generativelanguage.googleapis.com/v1beta/openai/
       chat:
         options:
-          model: gemini-1.5-flash
+          model: gemini-flash-latest
       embedding:
         options:
-          model: text-embedding-004
+          model: gemini-embedding-2
+          dimensions: 768
     vectorstore:
       pgvector:
-        table-name: vector_store
+        table-name: gemini_vector_store_final
+        dimensions: 768
         initialize-schema: true
         index-type: HNSW
         distance-type: COSINE_DISTANCE

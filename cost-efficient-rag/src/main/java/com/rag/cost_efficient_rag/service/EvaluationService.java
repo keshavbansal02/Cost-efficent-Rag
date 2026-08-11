@@ -52,48 +52,56 @@ public class EvaluationService {
         for (EvalDatasetItem item : dataset) {
             log.info("Evaluating test case: id='{}', question='{}'", item.getId(), item.getQuestion());
 
-            long start = System.currentTimeMillis();
-            RagQueryRequest queryReq = RagQueryRequest.builder()
-                    .query(item.getQuestion())
-                    .topK(k)
-                    .build();
+            try {
+                long start = System.currentTimeMillis();
+                RagQueryRequest queryReq = RagQueryRequest.builder()
+                        .query(item.getQuestion())
+                        .topK(k)
+                        .build();
 
-            RagQueryResponse queryResp = ragService.query(queryReq);
-            long latency = System.currentTimeMillis() - start;
-            latencies.add(latency);
+                RagQueryResponse queryResp = ragService.query(queryReq);
+                long latency = System.currentTimeMillis() - start;
+                latencies.add(latency);
 
-            List<String> retrievedSources = queryResp.getCitations() != null
-                    ? queryResp.getCitations().stream().map(CitationDto::getFilename).collect(Collectors.toList())
-                    : Collections.emptyList();
+                List<String> retrievedSources = queryResp.getCitations() != null
+                        ? queryResp.getCitations().stream().map(CitationDto::getFilename).collect(Collectors.toList())
+                        : Collections.emptyList();
 
-            double recall = calculateRecall(item.getExpectedDocumentSources(), retrievedSources);
-            double mrr = calculateMrr(item.getExpectedDocumentSources(), retrievedSources);
-            double ndcg = calculateNdcg(item.getExpectedDocumentSources(), retrievedSources, k);
-            double precision = calculateContextPrecision(item.getExpectedDocumentSources(), retrievedSources, k);
+                double recall = calculateRecall(item.getExpectedDocumentSources(), retrievedSources);
+                double mrr = calculateMrr(item.getExpectedDocumentSources(), retrievedSources);
+                double ndcg = calculateNdcg(item.getExpectedDocumentSources(), retrievedSources, k);
+                double precision = calculateContextPrecision(item.getExpectedDocumentSources(), retrievedSources, k);
 
-            JudgeVerdictDto judgeVerdict = evaluateLlmJudge(
-                    item.getQuestion(),
-                    item.getGoldReferenceAnswer(),
-                    queryResp.getAnswer(),
-                    retrievedSources
-            );
+                JudgeVerdictDto judgeVerdict = evaluateLlmJudge(
+                        item.getQuestion(),
+                        item.getGoldReferenceAnswer(),
+                        queryResp.getAnswer(),
+                        retrievedSources
+                );
 
-            TestCaseResult testResult = TestCaseResult.builder()
-                    .testCaseId(item.getId())
-                    .question(item.getQuestion())
-                    .expectedSources(item.getExpectedDocumentSources())
-                    .retrievedSources(retrievedSources)
-                    .recallAtK(recall)
-                    .mrr(mrr)
-                    .ndcgAtK(ndcg)
-                    .contextPrecision(precision)
-                    .faithfulnessScore(judgeVerdict.getFaithfulnessScore())
-                    .answerRelevanceScore(judgeVerdict.getAnswerRelevanceScore())
-                    .judgeRationale(judgeVerdict.getRationale())
-                    .latencyMs(latency)
-                    .build();
+                TestCaseResult testResult = TestCaseResult.builder()
+                        .testCaseId(item.getId())
+                        .question(item.getQuestion())
+                        .expectedSources(item.getExpectedDocumentSources())
+                        .retrievedSources(retrievedSources)
+                        .recallAtK(recall)
+                        .mrr(mrr)
+                        .ndcgAtK(ndcg)
+                        .contextPrecision(precision)
+                        .faithfulnessScore(judgeVerdict.getFaithfulnessScore())
+                        .answerRelevanceScore(judgeVerdict.getAnswerRelevanceScore())
+                        .judgeRationale(judgeVerdict.getRationale())
+                        .latencyMs(latency)
+                        .build();
 
-            results.add(testResult);
+                results.add(testResult);
+                
+                // Sleep to avoid hitting Google Gemini's 15 RPM Free Tier rate limit
+                Thread.sleep(4000);
+
+            } catch (Exception e) {
+                log.error("Error evaluating test case {}: {}", item.getId(), e.getMessage());
+            }
         }
 
         EvalSummaryResponse summary = buildSummary(results, latencies);
