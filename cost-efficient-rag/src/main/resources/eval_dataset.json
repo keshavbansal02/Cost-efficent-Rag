@@ -1,0 +1,92 @@
+[
+  {
+    "id": "TC-01",
+    "question": "What is the primary objective of Cost-Efficient RAG Application?",
+    "expectedDocumentSources": ["rag_architecture.pdf", "overview.md"],
+    "goldReferenceAnswer": "The primary objective of the Cost-Efficient RAG Application is to minimize LLM token usage and OpenAI embedding costs while maintaining high retrieval precision and answer faithfulness."
+  },
+  {
+    "id": "TC-02",
+    "question": "How is idempotent chunk re-ingestion handled in PgVector?",
+    "expectedDocumentSources": ["ingestion_guide.md"],
+    "goldReferenceAnswer": "Idempotent re-ingestion is handled by computing a SHA-256 hash of each chunk's raw text content, deriving a deterministic UUID from the hash, and checking if the chunk ID exists in PgVector's vector_store table before inserting new vectors."
+  },
+  {
+    "id": "TC-03",
+    "question": "What happens when no relevant context is retrieved from the vector store?",
+    "expectedDocumentSources": ["rag_service.pdf"],
+    "goldReferenceAnswer": "When no relevant context is retrieved, the system immediately returns 'No relevant context found in stored documents' without making an expensive LLM call."
+  },
+  {
+    "id": "TC-04",
+    "question": "What are the default chunk size and chunk overlap configured in application.yml?",
+    "expectedDocumentSources": ["config_spec.html"],
+    "goldReferenceAnswer": "The default chunk size is 512 tokens/words and the default chunk overlap is 64 tokens/words."
+  },
+  {
+    "id": "TC-05",
+    "question": "Which distance metric and index type are used in PgVectorStore?",
+    "expectedDocumentSources": ["database_schema.pdf"],
+    "goldReferenceAnswer": "PgVectorStore uses COSINE_DISTANCE as the distance metric and HNSW (Hierarchical Navigable Small World) as the vector index type."
+  },
+  {
+    "id": "TC-06",
+    "question": "How are HTML documents parsed prior to text chunking?",
+    "expectedDocumentSources": ["ingestion_guide.md"],
+    "goldReferenceAnswer": "HTML documents are parsed using Jsoup to strip HTML tags and extract clean textual content before applying the sliding window text chunker."
+  },
+  {
+    "id": "TC-07",
+    "question": "What document formats are supported for document ingestion?",
+    "expectedDocumentSources": ["ingestion_guide.md", "overview.md"],
+    "goldReferenceAnswer": "The supported document formats are PDF, HTML, Markdown, and plain Text."
+  },
+  {
+    "id": "TC-08",
+    "question": "How does the system measure RAG query latency and token consumption?",
+    "expectedDocumentSources": ["monitoring_aspect.pdf"],
+    "goldReferenceAnswer": "The system uses a Spring AOP QueryLoggingAspect to intercept RAG service queries and log execution latency (ms), retrieved chunk count, and OpenAI prompt and completion token usage."
+  },
+  {
+    "id": "TC-09",
+    "question": "What evaluation metrics are computed by the automated evaluation suite?",
+    "expectedDocumentSources": ["eval_suite.md"],
+    "goldReferenceAnswer": "The evaluation suite computes IR metrics including Recall@K, MRR, nDCG@K, Context Precision, LLM-as-a-Judge Faithfulness, Answer Relevance, and P50/P95 latencies."
+  },
+  {
+    "id": "TC-10",
+    "question": "What HTTP endpoint is exposed to upload files for vector ingestion?",
+    "expectedDocumentSources": ["api_spec.html"],
+    "goldReferenceAnswer": "Files are uploaded via the POST /api/v1/ingest/file REST endpoint using multipart form data."
+  },
+  {
+    "id": "TC-11",
+    "question": "What HTTP endpoint is exposed to query the RAG system?",
+    "expectedDocumentSources": ["api_spec.html"],
+    "goldReferenceAnswer": "Queries are executed via the POST /api/v1/rag/query REST endpoint with a JSON request payload."
+  },
+  {
+    "id": "TC-12",
+    "question": "How does the grounded system prompt ensure citations are provided?",
+    "expectedDocumentSources": ["prompt_engineering.md"],
+    "goldReferenceAnswer": "The system prompt instructs the LLM to answer strictly using retrieved context chunks and format source citations using [Doc N, filename] markers."
+  },
+  {
+    "id": "TC-13",
+    "question": "What model is configured for OpenAI text embeddings?",
+    "expectedDocumentSources": ["config_spec.html"],
+    "goldReferenceAnswer": "The configured OpenAI embedding model is text-embedding-3-small."
+  },
+  {
+    "id": "TC-14",
+    "question": "How are PDF documents read in Spring AI?",
+    "expectedDocumentSources": ["ingestion_guide.md"],
+    "goldReferenceAnswer": "PDF documents are read using Spring AI's PagePdfDocumentReader."
+  },
+  {
+    "id": "TC-15",
+    "question": "Where is the structured evaluation metrics report saved after running the evaluation suite?",
+    "expectedDocumentSources": ["eval_suite.md"],
+    "goldReferenceAnswer": "The structured evaluation report is exported and saved to eval_results.json in the working directory."
+  }
+]
