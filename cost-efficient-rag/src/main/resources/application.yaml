@@ -10,10 +10,14 @@ spring:
 
   ai:
     openai:
-      api-key: ${SPRING_AI_OPENAI_API_KEY:your-openai-key-here}
+      api-key: AIzaSyD5E4Tdh3pxzZmAEVppmlz0paLtIDb_MXc
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai/
+      chat:
+        options:
+          model: gemini-1.5-flash
       embedding:
         options:
-          model: text-embedding-3-small
+          model: text-embedding-004
     vectorstore:
       pgvector:
         table-name: vector_store
