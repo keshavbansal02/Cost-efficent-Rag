@@ -51,14 +51,14 @@ graph TD
         RagService -->|Vector Search| PgVectorStore
         PgVectorStore -->|Context Chunks| Grounder{Context Present?}
         Grounder -->|No Chunks| Fallback[Return Fallback Answer - $0 LLM Cost]
-        Grounder -->|Chunks Found| PromptBuilder[Grounded System Prompt Builder]
-        PromptBuilder --> ChatModel[OpenAI ChatModel]
-        ChatModel --> Response[Grounded Answer + Citations + Usage]
+        Grounder -->|Chunks Found| PromptBuilder["Grounded System Prompt Builder"]
+        PromptBuilder --> ChatModel["OpenAI ChatModel"]
+        ChatModel --> Response["Grounded Answer + Citations + Usage"]
     end
 
     subgraph AOP Monitoring
-        RagService -.-> Aspect[QueryLoggingAspect]
-        Aspect --> Logs[SLF4J Logger]
+        RagService -.-> Aspect["QueryLoggingAspect"]
+        Aspect --> Logs["SLF4J Logger"]
     end
 ```
 
@@ -304,6 +304,13 @@ While PgVector delivers exceptional cost savings (85%-90%+), a transition back t
 Based on empirical evaluation results:
 - **Retrieval Phase**: Retrieval precision (Recall@K ~0.93, nDCG@K ~0.91) performed consistently well due to token-based sliding window chunking (512 size / 64 overlap) and HNSW cosine distance indexing.
 - **Generation Phase**: LLM generation demonstrated high Faithfulness (~0.95) thanks to strict grounded system prompts. The primary bottleneck in RAG pipeline quality was **retrieval ranking precision when documents had dense overlapping domain terminology**, making retrieval tuning (topK selection and metadata filtering) the key lever for system quality.
+
+---
+
+## 👨‍💻 Author
+**Keshav Bansal**  
+*Applied AI / ML Engineering*  
+GitHub: [@keshavbansal02](https://github.com/keshavbansal02)
 
 ---
 
