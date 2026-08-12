@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: cost-efficient-rag
+
+  datasource:
+    url: jdbc:postgresql://ep-still-wave-axwhfhlu.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_EqzR0WvdY5cL
+    driver-class-name: org.postgresql.Driver
+
+  ai:
+    openai:
+      api-key: AIzaSyD5E4Tdh3pxzZmAEVppmlz0paLtIDb_MXc
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai/
+      chat:
+        options:
+          model: gemini-flash-latest
+      embedding:
+        options:
+          model: gemini-embedding-2
+          dimensions: 768
+    vectorstore:
+      pgvector:
+        table-name: gemini_vector_store_final
+        dimensions: 768
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+
+rag:
+  chunking:
+    default-chunk-size: 512
+    default-chunk-overlap: 64

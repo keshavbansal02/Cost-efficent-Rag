@@ -1,0 +1,10 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.log
+.git/
+.gitignore
+.idea/
+*.iml
+.vscode/
+.DS_Store
+eval_results.json
