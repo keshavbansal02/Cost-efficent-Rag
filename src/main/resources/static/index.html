@@ -371,11 +371,19 @@
 
                 let metricsHtml = '';
                 if (data.tokenUsage) {
+                    let confidenceHtml = '';
+                    if (data.confidenceScore !== null && data.confidenceScore !== undefined) {
+                        let confClass = 'text-green-500';
+                        if (data.confidenceScore < 60) confClass = 'text-red-500';
+                        else if (data.confidenceScore < 85) confClass = 'text-amber-500';
+                        confidenceHtml = `<span>Confidence: <strong class="${confClass}">${data.confidenceScore.toFixed(1)}%</strong></span>`;
+                    }
                     metricsHtml = `
-                    <div class="mt-3 flex gap-4 text-[11px] text-gray-400 font-medium">
+                    <div class="mt-3 flex gap-4 text-[11px] text-gray-400 font-medium flex-wrap">
                         <span class="${data.grounded ? 'text-green-500' : 'text-amber-500'}">
                             ${data.grounded ? '✓ Grounded' : '⚠ Fallback'}
                         </span>
+                        ${confidenceHtml}
                         <span>Latency: ${data.executionLatencyMs}ms</span>
                         <span>Tokens: ${data.tokenUsage.totalTokens} (P:${data.tokenUsage.promptTokens} C:${data.tokenUsage.completionTokens})</span>
                     </div>`;

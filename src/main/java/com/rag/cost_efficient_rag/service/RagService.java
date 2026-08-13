@@ -32,17 +32,20 @@ public class RagService {
     private final ChatModel chatModel;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final ConfidenceScorer confidenceScorer;
     private final String tableName;
 
     public RagService(VectorStore vectorStore,
                       ChatModel chatModel,
                       JdbcTemplate jdbcTemplate,
                       ObjectMapper objectMapper,
+                      ConfidenceScorer confidenceScorer,
                       @Value("${spring.ai.vectorstore.pgvector.table-name:vector_store}") String tableName) {
         this.vectorStore = vectorStore;
         this.chatModel = chatModel;
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+        this.confidenceScorer = confidenceScorer;
         this.tableName = tableName;
     }
 
@@ -96,6 +99,7 @@ public class RagService {
                     .executionLatencyMs(latencyMs)
                     .tokenUsage(new TokenUsageDto(0, 0, 0))
                     .grounded(false)
+                    .confidenceScore(100.0)
                     .build();
         }
 
@@ -121,6 +125,8 @@ public class RagService {
 
         log.info("LLM generation completed in {} ms. Tokens used: {}", latencyMs, tokenUsage);
 
+        double confidence = confidenceScorer.calculateConfidence(request.getQuery(), answer, rerankedDocs);
+
         return RagQueryResponse.builder()
                 .answer(answer)
                 .citations(citations)
@@ -128,6 +134,7 @@ public class RagService {
                 .executionLatencyMs(latencyMs)
                 .tokenUsage(tokenUsage)
                 .grounded(true)
+                .confidenceScore(confidence)
                 .build();
     }
 

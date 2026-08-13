@@ -220,6 +220,15 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 
 ---
 
+## Milestone 12: Confidence Scoring & Hallucination Guard
+
+### Objectives & Architecture
+* **Confidence Rating System:** Fuses 30% vector semantic cosine similarity overlap against source chunks and 70% LLM-as-a-Judge groundedness verification rating (faithfulness / hallucination risk) to compute a score from 0.0% to 100.0%.
+* **Correct Fallback Accuracy:** Set to 100.0% confidence automatically when zero-context fallback triggers (successfully preventing hallucination).
+* **UI Confidence Gauge:** Renders color-coded confidence score indicators dynamically next to the Grounded/Fallback badges in the chat assistant panel.
+
+---
+
 ## Milestone Progress Summary
 
 | Milestone | Area | Status | Deliverable |
@@ -235,6 +244,8 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 | **M9** | Multimodal Vision OCR & Tables | ✅ Completed | Gemini Flash OCR, table markdown & image parsing |
 | **M10** | Smart Chunking Engine | ✅ Completed | Section-aware, table-aware, and semantic sentence boundary splitting |
 | **M11** | Hybrid Search & RRF Reranking | ✅ Completed | Dense PgVector search combined with Postgres Full-Text Search via RRF |
+| **M12** | Confidence Scoring & Hallucination Guard | ✅ Completed | Cosine similarity + LLM alignment judge scoring & UI confidence meter |
+
 
 
 

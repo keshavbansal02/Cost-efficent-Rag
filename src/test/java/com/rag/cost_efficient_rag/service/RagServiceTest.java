@@ -48,14 +48,18 @@ class RagServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private ConfidenceScorer confidenceScorer;
+
     private RagService ragService;
 
     @BeforeEach
     void setUp() {
-        ragService = new RagService(vectorStore, chatModel, jdbcTemplate, objectMapper, "gemini_vector_store_final");
+        ragService = new RagService(vectorStore, chatModel, jdbcTemplate, objectMapper, confidenceScorer, "gemini_vector_store_final");
         // Lenient stub for lexical search fallback
         lenient().when(jdbcTemplate.query(anyString(), any(Object[].class), any(org.springframework.jdbc.core.RowMapper.class)))
                  .thenReturn(Collections.emptyList());
+        lenient().when(confidenceScorer.calculateConfidence(any(), any(), any())).thenReturn(95.0);
     }
 
     @Test

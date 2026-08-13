@@ -22,4 +22,5 @@ public class RagQueryResponse {
     private long executionLatencyMs;
     private TokenUsageDto tokenUsage;
     private boolean grounded;
+    private Double confidenceScore;
 }
