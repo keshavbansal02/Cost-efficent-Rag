@@ -90,4 +90,29 @@ class SmartChunkerTest {
         assertThat(chunks.get(0).getContent()).doesNotContain("# Technical Architecture");
         assertThat(chunks.get(1).getContent()).contains("# Technical Architecture");
     }
+
+    @Test
+    @DisplayName("Should handle empty or blank document content gracefully")
+    void testSmartChunking_EmptyContent() {
+        Document sourceDoc = new Document("", Map.of("file_name", "empty.md"));
+        List<Document> chunks = smartChunker.chunk(sourceDoc, 500, 50, "empty.md");
+        assertThat(chunks).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should fallback to pure chunking when no headers or tables exist")
+    void testSmartChunking_NoHeadersOrTables() {
+        String plainText = "This is a simple plain text document with no special markdown symbols. It contains normal sentences. It does not have table structures.";
+        Document sourceDoc = new Document(plainText, Map.of("file_name", "plain.txt"));
+
+        // Mock sentence embeddings
+        float[] dummyVector = new float[768];
+        Embedding res = new Embedding(dummyVector, 0);
+        EmbeddingResponse resp = new EmbeddingResponse(List.of(res));
+        lenient().when(embeddingModel.call(any())).thenReturn(resp);
+
+        List<Document> chunks = smartChunker.chunk(sourceDoc, 100, 10, "plain.txt");
+        assertThat(chunks).isNotEmpty();
+        assertThat(chunks.get(0).getContent()).contains("This is a simple plain text");
+    }
 }

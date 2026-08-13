@@ -74,4 +74,41 @@ class ConfidenceScorerTest {
         verify(embeddingModel, times(2)).embed(anyString());
         verify(chatModel, times(1)).call(any(Prompt.class));
     }
+
+    @Test
+    @DisplayName("Should return 0.0 confidence when answer is empty or null")
+    void testCalculateConfidence_EmptyAnswer_ReturnsZero() {
+        double score = confidenceScorer.calculateConfidence(
+                "query",
+                "   ",
+                Collections.emptyList()
+        );
+        assertThat(score).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("Should gracefully handle non-numeric LLM response by using fallback values")
+    void testCalculateConfidence_NonNumericLlmResponse_FallbackScore() {
+        Document contextDoc = new Document("id1", "Spring Boot 3.3.5 released with standard features", Map.of());
+        
+        float[] dummyVector = new float[768];
+        when(embeddingModel.embed(anyString())).thenReturn(dummyVector);
+
+        // Mock LLM returning text instead of digits (e.g. "no score")
+        ChatResponse mockChatResponse = mock(ChatResponse.class);
+        Generation mockGeneration = mock(Generation.class);
+        AssistantMessage assistantMessage = new AssistantMessage("Alignment score is low");
+        when(mockGeneration.getOutput()).thenReturn(assistantMessage);
+        when(mockChatResponse.getResult()).thenReturn(mockGeneration);
+        when(chatModel.call(any(Prompt.class))).thenReturn(mockChatResponse);
+
+        double score = confidenceScorer.calculateConfidence(
+                "Which Spring Boot version is released?",
+                "Spring Boot 3.3.5 is released.",
+                List.of(contextDoc)
+        );
+
+        // Should fallback to default judge score (80.0) without throwing NumberFormatException
+        assertThat(score).isGreaterThan(0.0);
+    }
 }

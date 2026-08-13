@@ -160,4 +160,39 @@ class RagServiceTest {
         assertThat(result).isNotEmpty();
         assertThat(result.get(0).getId()).isEqualTo("id1");
     }
+
+    @Test
+    @DisplayName("Should handle punctuation-only queries gracefully")
+    void testQuery_PunctuationOnlyQuery_ReturnsEmptyLexical() {
+        RagQueryRequest request = RagQueryRequest.builder()
+                .query("!!!")
+                .topK(3)
+                .build();
+
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(Collections.emptyList());
+
+        RagQueryResponse response = ragService.query(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.isGrounded()).isFalse();
+        assertThat(response.getAnswer()).isEqualTo(RagService.NO_CONTEXT_FALLBACK);
+    }
+
+    @Test
+    @DisplayName("Should recover and fallback gracefully when VectorStore search throws exception")
+    void testQuery_VectorStoreThrowsException_HandlesGracefully() {
+        RagQueryRequest request = RagQueryRequest.builder()
+                .query("Spring Boot")
+                .topK(3)
+                .build();
+
+        // Throw an exception on similaritySearch
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenThrow(new RuntimeException("DB Connection Refused"));
+
+        RagQueryResponse response = ragService.query(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.isGrounded()).isFalse();
+        assertThat(response.getAnswer()).isEqualTo(RagService.NO_CONTEXT_FALLBACK);
+    }
 }

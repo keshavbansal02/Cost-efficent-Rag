@@ -82,7 +82,11 @@ public class ConfidenceScorer {
                 String scoreStr = response.getResult().getOutput().getContent().trim().replaceAll("[^0-9]", "");
                 if (!scoreStr.isBlank()) {
                     judgeScore = Double.parseDouble(scoreStr);
+                } else {
+                    judgeScore = 80.0;
                 }
+            } else {
+                judgeScore = 80.0;
             }
         } catch (Exception e) {
             log.warn("LLM-as-a-Judge confidence rating failed: {}", e.getMessage());
