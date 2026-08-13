@@ -9,7 +9,11 @@ public enum DocumentType {
     PDF,
     HTML,
     MARKDOWN,
-    TEXT;
+    TEXT,
+    PNG,
+    JPEG,
+    JPG,
+    WEBP;
 
     /**
      * Infer or map a string representation (e.g. extension, content-type, or name) to DocumentType.
@@ -30,6 +34,18 @@ public enum DocumentType {
         }
         if (normalized.endsWith(".MD") || normalized.endsWith(".MARKDOWN") || normalized.equals("MARKDOWN") || normalized.equals("MD") || normalized.equals("TEXT/MARKDOWN")) {
             return MARKDOWN;
+        }
+        if (normalized.endsWith(".PNG") || normalized.equals("PNG") || normalized.equals("IMAGE/PNG")) {
+            return PNG;
+        }
+        if (normalized.endsWith(".JPEG") || normalized.equals("JPEG") || normalized.equals("IMAGE/JPEG")) {
+            return JPEG;
+        }
+        if (normalized.endsWith(".JPG") || normalized.equals("JPG") || normalized.equals("IMAGE/JPG")) {
+            return JPG;
+        }
+        if (normalized.endsWith(".WEBP") || normalized.equals("WEBP") || normalized.equals("IMAGE/WEBP")) {
+            return WEBP;
         }
         return Arrays.stream(DocumentType.values())
                 .filter(t -> t.name().equalsIgnoreCase(normalized))

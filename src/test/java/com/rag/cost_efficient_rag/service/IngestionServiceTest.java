@@ -39,6 +39,9 @@ class IngestionServiceTest {
     @Mock
     private RagProperties ragProperties;
 
+    @Mock
+    private GeminiVisionOcrService visionOcrService;
+
     @InjectMocks
     private IngestionService ingestionService;
 
@@ -129,5 +132,18 @@ class IngestionServiceTest {
         assertThatThrownBy(() -> ingestionService.ingestFile(emptyFile, "TEXT", 10, 2))
                 .isInstanceOf(IngestionException.class)
                 .hasMessageContaining("Uploaded file is null or empty");
+    }
+
+    @Test
+    @DisplayName("Should ingest image file and trigger Gemini OCR")
+    void testIngestFile_ImageOcr_Success() {
+        MockMultipartFile imageFile = new MockMultipartFile("file", "chart.png", "image/png", "fake-image-bytes".getBytes());
+        when(visionOcrService.extractFromImage(any(), anyString())).thenReturn("Transcribed chart data table content");
+
+        IngestionResponse response = ingestionService.ingestFile(imageFile, "PNG", 100, 10);
+
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getDocumentName()).isEqualTo("chart.png");
+        verify(visionOcrService, times(1)).extractFromImage(any(), eq("image/png"));
     }
 }

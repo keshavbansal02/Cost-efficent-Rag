@@ -35,6 +35,7 @@ public class IngestionService {
     private final VectorStore vectorStore;
     private final JdbcTemplate jdbcTemplate;
     private final RagProperties ragProperties;
+    private final GeminiVisionOcrService visionOcrService;
 
     /**
      * Ingest a document file (PDF, HTML, Markdown, or Text).
@@ -110,7 +111,43 @@ public class IngestionService {
                 case PDF:
                     log.debug("Using PagePdfDocumentReader for file: {}", filename);
                     PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(resource);
-                    return pdfReader.get();
+                    List<Document> pdfDocs = pdfReader.get();
+
+                    // Check if PDF has actual extractable text or is a scanned image
+                    int totalExtractedChars = pdfDocs.stream()
+                            .mapToInt(doc -> doc.getContent() != null ? doc.getContent().trim().length() : 0)
+                            .sum();
+
+                    if (totalExtractedChars < 50) {
+                        log.info("PDF '{}' appears to be a scanned document (extracted {} chars). Triggering Multimodal Vision OCR...", filename, totalExtractedChars);
+                        try {
+                            String ocrText = visionOcrService.extractTextFromScannedPdf(fileBytes, filename);
+                            if (ocrText != null && !ocrText.isBlank()) {
+                                Map<String, Object> meta = new HashMap<>();
+                                meta.put("file_name", filename);
+                                meta.put("document_type", DocumentType.PDF.name());
+                                meta.put("extracted_via", "GEMINI_MULTIMODAL_OCR");
+                                return List.of(new Document(ocrText, meta));
+                            }
+                        } catch (Exception e) {
+                            log.warn("OCR fallback failed for PDF: {}. Using standard PDFBox results.", filename, e);
+                        }
+                    }
+                    return pdfDocs;
+
+                case PNG:
+                case JPEG:
+                case JPG:
+                case WEBP:
+                    log.info("Detected image file: {}. Executing Multimodal Vision OCR and Table/Chart extraction...", filename);
+                    String mime = "image/" + docType.name().toLowerCase();
+                    if (docType == DocumentType.JPG) mime = "image/jpeg";
+                    String imageText = visionOcrService.extractFromImage(fileBytes, mime);
+                    Map<String, Object> imgMeta = new HashMap<>();
+                    imgMeta.put("file_name", filename);
+                    imgMeta.put("document_type", docType.name());
+                    imgMeta.put("extracted_via", "GEMINI_MULTIMODAL_OCR");
+                    return List.of(new Document(imageText, imgMeta));
 
                 case HTML:
                     log.debug("Using Jsoup HTML parser for file: {}", filename);

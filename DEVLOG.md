@@ -192,6 +192,16 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 
 ---
 
+## Milestone 9: Multimodal Ingestion & Vision OCR
+
+### Objectives & Architecture
+* **Scanned Document Detection:** Seamlessly identifies scanned image-based PDFs when native digital text extraction yields $<50$ characters.
+* **Multimodal Extraction:** Integrates `GeminiVisionOcrService` rendering PDF pages at 150 DPI and dispatching them to **Gemini 1.5 Flash** for complete verbatim transcription.
+* **Structured Tables & Charts:** Transcribes tabular layouts into structured Markdown tables and generates comprehensive chart trend descriptions and label extractions.
+* **Direct Image Formats:** Native support for `PNG`, `JPEG`, `JPG`, and `WEBP` image files in the ingestion pipeline.
+
+---
+
 ## Milestone Progress Summary
 
 | Milestone | Area | Status | Deliverable |
@@ -204,3 +214,5 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 | **M6** | Financial Cost Analysis Engine | ✅ Completed | 100K/1M/10M cost projection models & API |
 | **M7** | Dockerfile & CI/CD Workflow | ✅ Completed | Multi-stage Docker + GitHub Actions pipeline |
 | **M8** | Embedded Web Dashboard UI | ✅ Completed | Modern glassmorphic responsive interface |
+| **M9** | Multimodal Vision OCR & Tables | ✅ Completed | Gemini Flash OCR, table markdown & image parsing |
+
