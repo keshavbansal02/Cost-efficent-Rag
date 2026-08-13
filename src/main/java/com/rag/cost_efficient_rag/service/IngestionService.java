@@ -36,6 +36,7 @@ public class IngestionService {
     private final JdbcTemplate jdbcTemplate;
     private final RagProperties ragProperties;
     private final GeminiVisionOcrService visionOcrService;
+    private final SmartChunker smartChunker;
 
     /**
      * Ingest a document file (PDF, HTML, Markdown, or Text).
@@ -185,7 +186,7 @@ public class IngestionService {
 
         List<Document> allChunks = new ArrayList<>();
         for (Document rawDoc : rawDocuments) {
-            List<Document> chunks = chunkDocument(rawDoc, chunkSize, chunkOverlap, documentName);
+            List<Document> chunks = smartChunker.chunk(rawDoc, chunkSize, chunkOverlap, documentName);
             allChunks.addAll(chunks);
         }
 

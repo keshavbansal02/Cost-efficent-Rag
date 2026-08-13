@@ -19,7 +19,9 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,6 +42,9 @@ class IngestionServiceTest {
     private RagProperties ragProperties;
 
     @Mock
+    private SmartChunker smartChunker;
+
+    @Mock
     private GeminiVisionOcrService visionOcrService;
 
     @InjectMocks
@@ -51,6 +56,17 @@ class IngestionServiceTest {
         chunking.setDefaultChunkSize(10);
         chunking.setDefaultChunkOverlap(2);
         lenient().when(ragProperties.getChunking()).thenReturn(chunking);
+
+        lenient().when(smartChunker.chunk(any(), anyInt(), anyInt(), anyString()))
+                .thenAnswer(invocation -> {
+                    org.springframework.ai.document.Document source = invocation.getArgument(0);
+                    org.springframework.ai.document.Document chunk = new org.springframework.ai.document.Document(
+                            "dummy-id", source.getContent(), new HashMap<>(source.getMetadata())
+                    );
+                    chunk.getMetadata().put("chunk_hash", "dummy-hash");
+                    chunk.getMetadata().put("chunk_index", 0);
+                    return List.of(chunk);
+                });
     }
 
     @Test

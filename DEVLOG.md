@@ -202,6 +202,15 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 
 ---
 
+## Milestone 10: Smart Chunking Engine
+
+### Objectives & Architecture
+* **Section-Aware Header Splitting:** Splits documents logically based on Markdown header tiers (`#`, `##`, `###`), preventing paragraphs from merging across boundaries.
+* **Table-Aware Extraction:** Extracts and isolates Markdown tables intact, saving them as undivided chunks to preserve row alignment.
+* **Semantic Sentence Chunking:** Performs vector similarity clustering of sentences using `EmbeddingModel`. Consecutive sentences are grouped until cosine similarity falls below $0.82$, ensuring semantic boundaries.
+
+---
+
 ## Milestone Progress Summary
 
 | Milestone | Area | Status | Deliverable |
@@ -215,4 +224,6 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 | **M7** | Dockerfile & CI/CD Workflow | ✅ Completed | Multi-stage Docker + GitHub Actions pipeline |
 | **M8** | Embedded Web Dashboard UI | ✅ Completed | Modern glassmorphic responsive interface |
 | **M9** | Multimodal Vision OCR & Tables | ✅ Completed | Gemini Flash OCR, table markdown & image parsing |
+| **M10** | Smart Chunking Engine | ✅ Completed | Section-aware, table-aware, and semantic sentence boundary splitting |
+
 
