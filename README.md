@@ -4,29 +4,34 @@ A high-performance, cost-optimized Retrieval-Augmented Generation (RAG) backend 
 
 ---
 
-## Key Features
+### Key Features
 
-1. **Idempotent Document Ingestion**:
-   - Supports **PDF** (`PagePdfDocumentReader`), **HTML** (Jsoup tag stripping), **Markdown**, and **Text** format chunking.
-   - Configurable `default-chunk-size` (512) and `default-chunk-overlap` (64) via `application.yaml`.
-   - **SHA-256 Chunk Deduplication**: Computes SHA-256 hash for chunk text content and assigns deterministic UUID document IDs (`UUID.nameUUIDFromBytes(hash)`). Queries PgVector's `vector_store` table via `JdbcTemplate` to skip duplicate vector embeddings, dramatically reducing OpenAI embedding API costs.
+1. **Idempotent Document Ingestion & Multimodal OCR**:
+   - Supports **PDF**, **HTML**, **Markdown**, and **Text** format ingestion.
+   - **Scanned PDF Detection & Vision OCR**: Automated page renderer converting scanned pages to 150 DPI images and dispatching to **Gemini 1.5 Flash** for verbatim text extraction and structured Markdown tables transcription.
+   - **SHA-256 Chunk Deduplication**: Computes text content hashes to generate deterministic UUIDs, performing fast database lookups to skip already embedded chunks to save OpenAI embedding costs.
 
-2. **Grounded LLM Search & Zero-Hallucination Fallback**:
-   - Similarity search with Top-K and optional metadata filters via `PgVectorStore`.
-   - **Zero-Context Fallback**: If retrieved chunks list is empty or below threshold, directly returns `"No relevant context found in stored documents"`, skipping expensive LLM generation calls.
-   - **Grounded Prompting**: Strict system context forces the LLM to answer solely using retrieved context chunks and format source citations (`[Doc N, filename]`).
+2. **Smart Chunking Engine**:
+   - **Section-Aware Headers**: Splitting based on Markdown headers (`#`, `##`, `###`) to preserve topic boundaries.
+   - **Table-Aware Extractor**: Identifying Markdown tables and keeping them whole as single chunks to avoid row misalignment.
+   - **Semantic Sentence Clustering**: Tokenizing sentences and dynamically grouping them using vector similarity (threshold $0.82$) to preserve meaning.
 
-3. **Performance & Token Usage AOP Interceptor**:
-   - Spring AOP (`QueryLoggingAspect`) measures and logs query execution latency (ms), retrieved chunk count, grounded status, and OpenAI token consumption (prompt, completion, total tokens).
+3. **Grounded LLM Search & Zero-Hallucination Fallback**:
+   - **Zero-Context Fallback**: Skips LLM calls if retrieved context is below threshold.
+   - **Grounded Prompting**: Strict facts-only prompting enforcing citations formatting.
 
-4. **Automated Evaluation Suite (IR Metrics + LLM-as-a-Judge)**:
-   - Pre-populated benchmark dataset (`eval_dataset.json`) with 15 test cases.
-   - **Retrieval IR Metrics**: Computes **Recall@K**, **MRR (Mean Reciprocal Rank)**, **nDCG@K**, and **Context Precision**.
-   - **LLM-as-a-Judge**: Evaluates **Faithfulness / Groundedness** (0.0 to 1.0) and **Answer Relevance** (0.0 to 1.0) via structured JSON prompts.
-   - **Latency Analysis**: Computes $P_{50}$ and $P_{95}$ latency percentiles and exports JSON reports to `eval_results.json`.
+4. **Hybrid Retrieval & RRF Reranking**:
+   - **Dual Retrieval Path**: Executes simultaneous semantic PgVector similarity search and sparse PostgreSQL Full-Text Search (FTS with tsvector/tsquery + `ILIKE` fallbacks).
+   - **Reciprocal Rank Fusion (RRF)**: Merges rank outcomes with a standard constant factor ($k=60$) to bubble up both semantic matches and exact terminology terms.
 
-5. **Cost Analysis Engine**:
-   - Financial cost comparison projections across **100K, 1M, and 10M vector scale tiers** comparing PgVector (Neon PostgreSQL) against fully managed vector databases (e.g. Pinecone).
+5. **Confidence Scoring & Hallucination Guard**:
+   - **Dual Confidence Fusion**: Combines cosine similarity overlap between generated answer and context chunks (30%) and LLM-as-a-Judge groundedness rating (70%) to output a 0-100% confidence level.
+
+6. **Performance & Token Usage AOP Interceptor**:
+   - Spring AOP (`QueryLoggingAspect`) measures and logs query latency, chunk counts, grounded status, and OpenAI token consumption.
+
+7. **Automated Evaluation Suite (IR Metrics + LLM-as-a-Judge)**:
+   - Automated run of 15 test cases evaluating **Recall@K**, **MRR**, **nDCG@K**, **Context Precision**, **Faithfulness**, and **Answer Relevance**.
 
 ---
 
@@ -37,28 +42,45 @@ graph TD
     User([Client / API User]) --> Controller[Spring Boot Controllers]
     
     subgraph Ingestion Pipeline
-        Controller -->|File / Text| IngestionService[IngestionService]
-        IngestionService --> Reader[Spring AI Document Readers / Jsoup]
-        Reader --> Chunker[Sliding Window Text Chunker]
-        Chunker --> Hasher[SHA-256 Hash Generator & UUID]
+        Controller -->|File Ingest| IngestionService[IngestionService]
+        IngestionService --> ScannedCheck{Scanned Document?}
+        ScannedCheck -->|Yes: <50 chars| VisionOcr[Gemini Vision OCR & Table Parser]
+        ScannedCheck -->|No| TextParser[Digital Text Reader]
+        
+        VisionOcr --> SmartChunker[SmartChunker Engine]
+        TextParser --> SmartChunker
+        
+        SmartChunker -->|1. Section Splitter| SC_H[Header splitting #, ##]
+        SmartChunker -->|2. Table Splitter| SC_T[Markdown table isolation]
+        SmartChunker -->|3. Semantic Splitter| SC_S[Semantic similarity clustering]
+        
+        SC_H & SC_T & SC_S --> Hasher[SHA-256 Hash & UUID Generator]
         Hasher --> Deduper{DB Duplicate Lookup}
         Deduper -->|New Chunks| PgVectorStore[PgVectorStore / Neon PostgreSQL]
-        Deduper -->|Duplicate| Skip[Skip Vector Embedding Call]
+        Deduper -->|Duplicate| Skip[Skip Vector Insertion & Save API Cost]
     end
 
-    subgraph RAG Query Pipeline
+    subgraph Hybrid Query & RRF Pipeline
         Controller -->|Query Request| RagService[RagService]
-        RagService -->|Vector Search| PgVectorStore
-        PgVectorStore -->|Context Chunks| Grounder{Context Present?}
-        Grounder -->|No Chunks| Fallback[Return Fallback Answer - $0 LLM Cost]
-        Grounder -->|Chunks Found| PromptBuilder["Grounded System Prompt Builder"]
-        PromptBuilder --> ChatModel["OpenAI ChatModel"]
-        ChatModel --> Response["Grounded Answer + Citations + Usage"]
+        
+        RagService -->|Path A: Semantic| VectorSearch[PgVector Similarity Search]
+        RagService -->|Path B: Lexical| PostgresFts[PostgreSQL FTS + ILIKE Search]
+        
+        VectorSearch -->|Top-20 Chunks| RrfScorer[Reciprocal Rank Fusion Reranker]
+        PostgresFts -->|Top-20 Chunks| RrfScorer
+        
+        RrfScorer -->|Top-K Reranked Chunks| Grounder{Context Present?}
+        Grounder -->|No Chunks| Fallback[Return Grounded Fallback Answer - $0 LLM Cost]
+        
+        Grounder -->|Chunks Found| PromptBuilder[Grounded System Prompt Builder]
+        PromptBuilder --> ChatModel[OpenAI / Gemini ChatModel]
+        ChatModel --> Confidence[ConfidenceScorer: Cosine overlap + LLM Judge]
+        Confidence --> Response[Grounded Answer + Citations + Confidence score]
     end
 
-    subgraph AOP Monitoring
-        RagService -.-> Aspect["QueryLoggingAspect"]
-        Aspect --> Logs["SLF4J Logger"]
+    subgraph AOP Observability
+        RagService -.-> Aspect[QueryLoggingAspect]
+        Aspect --> Logs[SLF4J Logger]
     end
 ```
 
