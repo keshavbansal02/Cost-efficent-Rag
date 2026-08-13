@@ -19,6 +19,11 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +42,21 @@ class RagServiceTest {
     @Mock
     private ChatModel chatModel;
 
-    @InjectMocks
+    @Mock
+    private JdbcTemplate jdbcTemplate;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     private RagService ragService;
+
+    @BeforeEach
+    void setUp() {
+        ragService = new RagService(vectorStore, chatModel, jdbcTemplate, objectMapper, "gemini_vector_store_final");
+        // Lenient stub for lexical search fallback
+        lenient().when(jdbcTemplate.query(anyString(), any(Object[].class), any(org.springframework.jdbc.core.RowMapper.class)))
+                 .thenReturn(Collections.emptyList());
+    }
 
     @Test
     @DisplayName("Should retrieve chunks, generate grounded answer and extract citations")
@@ -119,5 +137,23 @@ class RagServiceTest {
         assertThatThrownBy(() -> ragService.query(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Query string cannot be null or blank");
+    }
+
+    @Test
+    @DisplayName("Should merge and rank documents correctly using RRF")
+    void testRrfRerank_Success() {
+        Document doc1 = new Document("id1", "Content 1", Map.of());
+        Document doc2 = new Document("id2", "Content 2", Map.of());
+        Document doc3 = new Document("id3", "Content 3", Map.of());
+
+        // Dense Vector returns: [doc1, doc2]
+        List<Document> semanticDocs = List.of(doc1, doc2);
+        // Lexical FTS returns: [doc3, doc1]
+        List<Document> lexicalDocs = List.of(doc3, doc1);
+
+        List<Document> result = ragService.rrfRerank(semanticDocs, lexicalDocs, 3);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getId()).isEqualTo("id1");
     }
 }

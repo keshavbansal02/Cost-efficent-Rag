@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class IngestionService {
 
     private final VectorStore vectorStore;
@@ -37,6 +37,21 @@ public class IngestionService {
     private final RagProperties ragProperties;
     private final GeminiVisionOcrService visionOcrService;
     private final SmartChunker smartChunker;
+    private final String tableName;
+
+    public IngestionService(VectorStore vectorStore,
+                            JdbcTemplate jdbcTemplate,
+                            RagProperties ragProperties,
+                            GeminiVisionOcrService visionOcrService,
+                            SmartChunker smartChunker,
+                            @Value("${spring.ai.vectorstore.pgvector.table-name:vector_store}") String tableName) {
+        this.vectorStore = vectorStore;
+        this.jdbcTemplate = jdbcTemplate;
+        this.ragProperties = ragProperties;
+        this.visionOcrService = visionOcrService;
+        this.smartChunker = smartChunker;
+        this.tableName = tableName;
+    }
 
     /**
      * Ingest a document file (PDF, HTML, Markdown, or Text).
@@ -311,7 +326,7 @@ public class IngestionService {
             for (int i = 0; i < chunkIds.size(); i += batchSize) {
                 List<String> batch = chunkIds.subList(i, Math.min(i + batchSize, chunkIds.size()));
                 String inSql = String.join(",", Collections.nCopies(batch.size(), "?"));
-                String sql = String.format("SELECT id FROM vector_store WHERE id IN (%s)", inSql);
+                String sql = String.format("SELECT id FROM %s WHERE id IN (%s)", tableName, inSql);
                 List<String> found = jdbcTemplate.query(sql, batch.toArray(new Object[0]), (rs, rowNum) -> rs.getString("id"));
                 existingIds.addAll(found);
             }

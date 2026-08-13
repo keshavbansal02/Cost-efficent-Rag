@@ -211,6 +211,15 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 
 ---
 
+## Milestone 11: Hybrid Search & RRF Reranking
+
+### Objectives & Architecture
+* **Dense Vector Search:** Uses PgVector cosine similarity Top-$2K$ retrieval to capture contextual meaning.
+* **Sparse Lexical Search:** Integrates PostgreSQL native **Full-Text Search (FTS)** matching exact terms and acronyms, falling back to clean `ILIKE` keyword matching.
+* **Reciprocal Rank Fusion (RRF):** Implements in-database RRF rerank scorer fusing dense and sparse search rankings using standard constant $k=60$. Bubbles up high-recall exact matches and semantic fits.
+
+---
+
 ## Milestone Progress Summary
 
 | Milestone | Area | Status | Deliverable |
@@ -225,5 +234,7 @@ Prove with numbers that PgVector (Neon PostgreSQL) is an economically credible a
 | **M8** | Embedded Web Dashboard UI | ✅ Completed | Modern glassmorphic responsive interface |
 | **M9** | Multimodal Vision OCR & Tables | ✅ Completed | Gemini Flash OCR, table markdown & image parsing |
 | **M10** | Smart Chunking Engine | ✅ Completed | Section-aware, table-aware, and semantic sentence boundary splitting |
+| **M11** | Hybrid Search & RRF Reranking | ✅ Completed | Dense PgVector search combined with Postgres Full-Text Search via RRF |
+
 
 
